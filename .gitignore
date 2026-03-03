@@ -1,0 +1,14 @@
+# Node dependencies
+node_modules/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Packaged skills
+*.skill
+
+# Temporary files
+.gemini/
+.geminiignore
+tmp/
