@@ -36,7 +36,7 @@ This repository is a collection of Agent Skills for Gemini CLI.
 - [async-python-patterns](skills/async-python-patterns/SKILL.md): Master Python asyncio, concurrent programming, and async/await patterns.
 - [python-anti-patterns](skills/python-anti-patterns/SKILL.md): Common Python anti-patterns to avoid.
 - [python-background-jobs](skills/python-background-jobs/SKILL.md): Python background job patterns including task queues and workers.
-- [python-code-style](skills/python-code-style/SKILL.md): Python code style, linting, formatting, and documentation standards.
+- [python-code-style](skills/python-c ode-style/SKILL.md): Python code style, linting, formatting, and documentation standards.
 - [python-configuration](skills/python-configuration/SKILL.md): Python configuration management via environment variables and typed settings.
 - [python-design-patterns](skills/python-design-patterns/SKILL.md): Python design patterns including KISS, SoC, and SRP.
 - [python-error-handling](skills/python-error-handling/SKILL.md): Python error handling patterns and exception hierarchies.
@@ -57,6 +57,7 @@ This repository is a collection of Agent Skills for Gemini CLI.
 
 ### API & Database
 - [api-design](skills/api-design/SKILL.md): Design REST/GraphQL APIs, including versioning, pagination, and documentation.
+- [api-spec-analyzer](skills/api-spec-analyzer/SKILL.md): Analyze OpenAPI specs to provide TypeScript interfaces, request/response formats, and implementation guidance.
 - [database-patterns](skills/database-patterns/SKILL.md): Database schema design, repository patterns, migrations, and query optimization.
 
 ### General

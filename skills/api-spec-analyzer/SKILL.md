@@ -1,424 +1,421 @@
 ---
-name: vue-typescript
-version: 1.0.0
-description: Use when building Vue 3 applications with TypeScript, implementing Composition API components, setting up Pinia stores, or working with Vue Router. Covers script setup, composables, and reactive state.
-keywords:
-  - Vue 3
-  - TypeScript
-  - Composition API
-  - Pinia
-  - Vue Router
-  - composables
-  - reactive
-  - script setup
-plugin: dev
-updated: 2026-01-20
+name: api-spec-analyzer
+description: Analyzes API documentation from OpenAPI specs to provide TypeScript interfaces, request/response formats, and implementation guidance. Use when implementing API integrations, debugging API errors (400, 401, 404), replacing mock APIs, verifying data types, or when user mentions endpoints, API calls, or backend integration.
 ---
 
-# Vue 3 + TypeScript Patterns
+# API Specification Analyzer
 
-## Overview
+This Skill analyzes OpenAPI specifications to provide accurate API documentation, TypeScript interfaces, and implementation guidance for the caremaster-tenant-frontend project.
 
-Modern Vue 3 patterns with TypeScript and Composition API for building robust applications.
+## When to use this Skill
 
-## Component Patterns
+Claude should invoke this Skill when:
 
-### Script Setup with TypeScript
+- User is implementing a new API integration
+- User encounters API errors (400 Bad Request, 401 Unauthorized, 404 Not Found, etc.)
+- User wants to replace mock API with real backend
+- User asks about data types, required fields, or API formats
+- User mentions endpoints like "/api/users" or "/api/tenants"
+- Before implementing any feature that requires API calls
+- When debugging type mismatches between frontend and backend
 
-```vue
-<script setup lang="ts">
-import { ref, computed } from 'vue';
+## Instructions
 
-interface Props {
-  title: string;
-  count?: number;
-}
+### Step 1: Fetch API Documentation
 
-const props = withDefaults(defineProps<Props>(), {
-  count: 0,
-});
+Use the MCP server tools to get the OpenAPI specification:
 
-const emit = defineEmits<{
-  (e: 'update', value: number): void;
-  (e: 'close'): void;
-}>();
-
-const localCount = ref(props.count);
-
-const doubled = computed(() => localCount.value * 2);
-
-function increment() {
-  localCount.value++;
-  emit('update', localCount.value);
-}
-</script>
-
-<template>
-  <div>
-    <h2>{{ title }}</h2>
-    <p>Count: {{ localCount }} (doubled: {{ doubled }})</p>
-    <button @click="increment">Increment</button>
-  </div>
-</template>
+```
+mcp__Tenant_Management_Portal_API__read_project_oas_f4bjy4
 ```
 
-### Generic Components
+If user requests fresh data or if documentation seems outdated:
 
-```vue
-<script setup lang="ts" generic="T">
-interface Props {
-  items: T[];
-  selected?: T;
-}
-
-const props = defineProps<Props>();
-
-const emit = defineEmits<{
-  (e: 'select', item: T): void;
-}>();
-</script>
-
-<template>
-  <ul>
-    <li
-      v-for="(item, index) in items"
-      :key="index"
-      :class="{ selected: item === selected }"
-      @click="emit('select', item)"
-    >
-      <slot :item="item" />
-    </li>
-  </ul>
-</template>
+```
+mcp__Tenant_Management_Portal_API__refresh_project_oas_f4bjy4
 ```
 
-## Composables
+For referenced schemas (when $ref is used):
 
-### Basic Composable
+```
+mcp__Tenant_Management_Portal_API__read_project_oas_ref_resources_f4bjy4
+```
 
-```ts
-// composables/useCounter.ts
-import { ref, computed } from 'vue';
+### Step 2: Analyze the Specification
 
-interface UseCounterOptions {
-  initial?: number;
-  min?: number;
-  max?: number;
+Extract the following information for each relevant endpoint:
+
+1. **HTTP Method and Path**: GET /api/users, POST /api/tenants, etc.
+2. **Authentication**: Bearer token, API key, etc.
+3. **Request Parameters**:
+   - Path parameters (e.g., `:id`)
+   - Query parameters (e.g., `?page=1&limit=10`)
+   - Request body schema
+   - Required headers
+4. **Response Specification**:
+   - Success response structure (200, 201, etc.)
+   - Error response formats (400, 401, 404, 500)
+   - Status codes and their meanings
+5. **Data Types**:
+   - Exact types (string, number, boolean, array, object)
+   - Format specifications (ISO 8601, UUID, email)
+   - Required vs optional fields
+   - Enum values and constraints
+   - Default values
+
+### Step 3: Generate TypeScript Interfaces
+
+Create ready-to-use TypeScript interfaces that match the API specification exactly:
+
+```typescript
+/**
+ * User creation input
+ * Required fields: email, name, role
+ */
+export interface UserCreateInput {
+	/** User's email address - must be unique */
+	email: string
+	/** Full name of the user (2-100 characters) */
+	name: string
+	/** User role - determines access permissions */
+	role: "admin" | "manager" | "user"
+	/** Account status - defaults to "active" */
+	status?: "active" | "inactive"
 }
 
-export function useCounter(options: UseCounterOptions = {}) {
-  const { initial = 0, min, max } = options;
-  const count = ref(initial);
-
-  const increment = () => {
-    if (max === undefined || count.value < max) {
-      count.value++;
-    }
-  };
-
-  const decrement = () => {
-    if (min === undefined || count.value > min) {
-      count.value--;
-    }
-  };
-
-  const reset = () => {
-    count.value = initial;
-  };
-
-  const isAtMin = computed(() => min !== undefined && count.value <= min);
-  const isAtMax = computed(() => max !== undefined && count.value >= max);
-
-  return {
-    count,
-    increment,
-    decrement,
-    reset,
-    isAtMin,
-    isAtMax,
-  };
+/**
+ * User entity returned from API
+ */
+export interface User {
+	/** Unique identifier (UUID format) */
+	id: string
+	email: string
+	name: string
+	role: "admin" | "manager" | "user"
+	status: "active" | "inactive"
+	/** ISO 8601 timestamp */
+	createdAt: string
+	/** ISO 8601 timestamp */
+	updatedAt: string
 }
 ```
 
-### Data Fetching Composable
+### Step 4: Provide Implementation Guidance
 
-```ts
-// composables/useFetch.ts
-import { ref, watchEffect, type Ref } from 'vue';
+#### API Service Pattern
 
-interface UseFetchReturn<T> {
-  data: Ref<T | null>;
-  error: Ref<Error | null>;
-  loading: Ref<boolean>;
-  refetch: () => Promise<void>;
-}
+```typescript
+// src/api/userApi.ts
+export async function createUser(input: UserCreateInput): Promise<User> {
+	const response = await fetch("/api/users", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			"Authorization": `Bearer ${getToken()}`,
+		},
+		body: JSON.stringify(input),
+	})
 
-export function useFetch<T>(url: string | Ref<string>): UseFetchReturn<T> {
-  const data = ref<T | null>(null) as Ref<T | null>;
-  const error = ref<Error | null>(null);
-  const loading = ref(false);
+	if (!response.ok) {
+		const error = await response.json()
+		throw new Error(error.message)
+	}
 
-  async function fetchData() {
-    const urlValue = typeof url === 'string' ? url : url.value;
-    loading.value = true;
-    error.value = null;
-
-    try {
-      const response = await fetch(urlValue);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      data.value = await response.json();
-    } catch (e) {
-      error.value = e instanceof Error ? e : new Error('Unknown error');
-    } finally {
-      loading.value = false;
-    }
-  }
-
-  watchEffect(() => {
-    fetchData();
-  });
-
-  return { data, error, loading, refetch: fetchData };
+	return response.json()
 }
 ```
 
-## State Management (Pinia)
+#### TanStack Query Hook Pattern
 
-### Store Definition
+```typescript
+// src/hooks/useCreateUser.ts
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { createUser } from "@/api/userApi"
+import { userKeys } from "@/lib/queryKeys"
+import { toast } from "sonner"
 
-```ts
-// stores/userStore.ts
-import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
-import type { User } from '@/types';
+export function useCreateUser() {
+	const queryClient = useQueryClient()
 
-export const useUserStore = defineStore('user', () => {
-  // State
-  const users = ref<User[]>([]);
-  const currentUserId = ref<string | null>(null);
-  const loading = ref(false);
-
-  // Getters
-  const currentUser = computed(() =>
-    users.value.find(u => u.id === currentUserId.value)
-  );
-
-  const userCount = computed(() => users.value.length);
-
-  // Actions
-  async function fetchUsers() {
-    loading.value = true;
-    try {
-      const response = await api.getUsers();
-      users.value = response.data;
-    } finally {
-      loading.value = false;
-    }
-  }
-
-  function setCurrentUser(userId: string) {
-    currentUserId.value = userId;
-  }
-
-  return {
-    users,
-    currentUserId,
-    loading,
-    currentUser,
-    userCount,
-    fetchUsers,
-    setCurrentUser,
-  };
-});
-```
-
-### Using Store in Components
-
-```vue
-<script setup lang="ts">
-import { storeToRefs } from 'pinia';
-import { useUserStore } from '@/stores/userStore';
-
-const store = useUserStore();
-// Destructure reactive state
-const { users, loading, currentUser } = storeToRefs(store);
-// Actions don't need storeToRefs
-const { fetchUsers, setCurrentUser } = store;
-
-onMounted(() => {
-  fetchUsers();
-});
-</script>
-```
-
-## Router with TypeScript
-
-### Route Definitions
-
-```ts
-// router/index.ts
-import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
-
-const routes: RouteRecordRaw[] = [
-  {
-    path: '/',
-    name: 'home',
-    component: () => import('@/views/HomeView.vue'),
-  },
-  {
-    path: '/users/:id',
-    name: 'user',
-    component: () => import('@/views/UserView.vue'),
-    props: true,
-  },
-  {
-    path: '/admin',
-    name: 'admin',
-    component: () => import('@/views/AdminView.vue'),
-    meta: { requiresAuth: true },
-  },
-];
-
-export const router = createRouter({
-  history: createWebHistory(),
-  routes,
-});
-```
-
-### Typed Route Params
-
-```vue
-<script setup lang="ts">
-import { useRoute, useRouter } from 'vue-router';
-
-const route = useRoute();
-const router = useRouter();
-
-// Typed param access
-const userId = computed(() => route.params.id as string);
-
-function goToUser(id: string) {
-  router.push({ name: 'user', params: { id } });
+	return useMutation({
+		mutationFn: createUser,
+		onSuccess: (newUser) => {
+			// Invalidate queries to refetch updated data
+			queryClient.invalidateQueries({ queryKey: userKeys.all() })
+			toast.success("User created successfully")
+		},
+		onError: (error) => {
+			toast.error(`Failed to create user: ${error.message}`)
+		},
+	})
 }
-</script>
 ```
 
-## Form Handling
+#### Query Key Pattern
 
-### VeeValidate with Zod
-
-```vue
-<script setup lang="ts">
-import { useForm } from 'vee-validate';
-import { toTypedSchema } from '@vee-validate/zod';
-import { z } from 'zod';
-
-const schema = toTypedSchema(
-  z.object({
-    email: z.string().email('Invalid email'),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
-  })
-);
-
-const { handleSubmit, errors, defineField } = useForm({
-  validationSchema: schema,
-});
-
-const [email, emailAttrs] = defineField('email');
-const [password, passwordAttrs] = defineField('password');
-
-const onSubmit = handleSubmit((values) => {
-  console.log('Form submitted:', values);
-});
-</script>
-
-<template>
-  <form @submit="onSubmit">
-    <input v-model="email" v-bind="emailAttrs" type="email" />
-    <span v-if="errors.email">{{ errors.email }}</span>
-
-    <input v-model="password" v-bind="passwordAttrs" type="password" />
-    <span v-if="errors.password">{{ errors.password }}</span>
-
-    <button type="submit">Submit</button>
-  </form>
-</template>
-```
-
-## Provide/Inject with TypeScript
-
-```ts
-// Injection key with type
-import type { InjectionKey } from 'vue';
-
-interface ThemeContext {
-  theme: Ref<'light' | 'dark'>;
-  toggleTheme: () => void;
+```typescript
+// src/lib/queryKeys.ts
+export const userKeys = {
+	all: () => ["users"] as const,
+	lists: () => [...userKeys.all(), "list"] as const,
+	list: (filters: UserFilters) => [...userKeys.lists(), filters] as const,
+	details: () => [...userKeys.all(), "detail"] as const,
+	detail: (id: string) => [...userKeys.details(), id] as const,
 }
-
-export const themeKey: InjectionKey<ThemeContext> = Symbol('theme');
-
-// Provider component
-const theme = ref<'light' | 'dark'>('light');
-const toggleTheme = () => {
-  theme.value = theme.value === 'light' ? 'dark' : 'light';
-};
-provide(themeKey, { theme, toggleTheme });
-
-// Consumer component
-const themeContext = inject(themeKey);
-if (!themeContext) throw new Error('Theme context not provided');
 ```
 
-## Performance
+### Step 5: Document Security and Validation
 
-### Lazy Loading Components
+- **OWASP Considerations**: SQL injection, XSS, CSRF protection
+- **Input Validation**: Required field validation, format validation
+- **Authentication**: Token handling, refresh logic
+- **Error Handling**: Proper HTTP status code handling
+- **Rate Limiting**: Retry logic, exponential backoff
 
-```ts
-import { defineAsyncComponent } from 'vue';
+### Step 6: Provide Test Recommendations
 
-const AsyncModal = defineAsyncComponent(() =>
-  import('@/components/Modal.vue')
-);
+```typescript
+// Example test cases based on API spec
+describe("createUser", () => {
+	it("should create user with valid data", async () => {
+		// Test success case
+	})
 
-const AsyncModalWithOptions = defineAsyncComponent({
-  loader: () => import('@/components/Modal.vue'),
-  loadingComponent: LoadingSpinner,
-  errorComponent: ErrorDisplay,
-  delay: 200,
-  timeout: 3000,
-});
+	it("should reject duplicate email", async () => {
+		// Test 409 Conflict
+	})
+
+	it("should validate email format", async () => {
+		// Test 400 Bad Request
+	})
+
+	it("should require authentication", async () => {
+		// Test 401 Unauthorized
+	})
+})
 ```
 
-## File Structure
+## Output Format
 
+Provide analysis in this structure:
+
+```markdown
+# API Analysis: [Endpoint Name]
+
+## Endpoint Summary
+- **Method**: POST
+- **Path**: /api/users
+- **Authentication**: Bearer token required
+
+## Request Specification
+
+### Path Parameters
+None
+
+### Query Parameters
+None
+
+### Request Body
+[TypeScript interface]
+
+### Required Headers
+- Content-Type: application/json
+- Authorization: Bearer {token}
+
+## Response Specification
+
+### Success Response (201)
+[TypeScript interface]
+
+### Error Responses
+- 400: Validation error (duplicate email, invalid format)
+- 401: Unauthorized (missing/invalid token)
+- 403: Forbidden (insufficient permissions)
+- 500: Server error
+
+## Data Type Details
+- **email**: string, required, must be valid email format, unique
+- **name**: string, required, 2-100 characters
+- **role**: enum ["admin", "manager", "user"], required
+- **status**: enum ["active", "inactive"], optional, defaults to "active"
+
+## TypeScript Interfaces
+[Complete interfaces with JSDoc comments]
+
+## Implementation Guide
+[API service + TanStack Query hook examples]
+
+## Security Notes
+- Validate email format on client and server
+- Hash passwords if handling credentials
+- Use HTTPS for all requests
+- Store tokens securely (httpOnly cookies recommended)
+
+## Integration Checklist
+- [ ] Add types to src/types/
+- [ ] Create API service in src/api/
+- [ ] Add query keys to src/lib/queryKeys.ts
+- [ ] Create hooks in src/hooks/
+- [ ] Add error handling with toast notifications
+- [ ] Test with Vitest
+```
+
+## Project Conventions
+
+### Path Aliases
+Always use `@/` path alias:
+```typescript
+import { User } from "@/types/user"
+import { createUser } from "@/api/userApi"
+```
+
+### Code Style (Biome)
+- Tabs for indentation
+- Double quotes
+- Semicolons optional (only when needed)
+- Line width: 100 characters
+
+### File Organization
 ```
 src/
-├── components/
-│   ├── common/
-│   │   ├── BaseButton.vue
-│   │   └── BaseInput.vue
-│   ├── layout/
-│   │   ├── AppHeader.vue
-│   │   └── AppSidebar.vue
-│   └── features/
-│       └── users/
-├── composables/
-│   ├── useAuth.ts
-│   └── useFetch.ts
-├── stores/
-│   ├── userStore.ts
-│   └── appStore.ts
-├── views/
-│   ├── HomeView.vue
-│   └── UserView.vue
-├── router/
-│   └── index.ts
-├── types/
-│   └── index.ts
-└── App.vue
+├── types/           # Domain types
+│   └── user.ts
+├── api/             # API service functions
+│   └── userApi.ts
+├── hooks/           # TanStack Query hooks
+│   └── useUsers.ts
+└── lib/
+    └── queryKeys.ts # Query key factories
 ```
 
----
+## Common Patterns
 
-*Vue 3 + TypeScript patterns for modern frontend development*
+### Optimistic Updates
+```typescript
+onMutate: async (newUser) => {
+	// Cancel outgoing queries
+	await queryClient.cancelQueries({ queryKey: userKeys.lists() })
+
+	// Snapshot previous value
+	const previous = queryClient.getQueryData(userKeys.lists())
+
+	// Optimistically update cache
+	queryClient.setQueryData(userKeys.lists(), (old) => [...old, newUser])
+
+	return { previous }
+},
+onError: (err, newUser, context) => {
+	// Rollback on error
+	queryClient.setQueryData(userKeys.lists(), context.previous)
+},
+```
+
+### Pagination
+```typescript
+export const userKeys = {
+	list: (page: number, limit: number) =>
+		[...userKeys.lists(), { page, limit }] as const,
+}
+```
+
+### Search and Filters
+```typescript
+export interface UserFilters {
+	search?: string
+	role?: UserRole
+	status?: UserStatus
+	sortBy?: "name" | "email" | "createdAt"
+	sortOrder?: "asc" | "desc"
+}
+
+export const userKeys = {
+	list: (filters: UserFilters) => [...userKeys.lists(), filters] as const,
+}
+```
+
+## Error Handling Patterns
+
+### API Service
+```typescript
+if (!response.ok) {
+	const error = await response.json()
+	throw new ApiError(error.message, response.status, error.details)
+}
+```
+
+### Custom Hook
+```typescript
+onError: (error: ApiError) => {
+	if (error.status === 409) {
+		toast.error("Email already exists")
+	} else if (error.status === 400) {
+		toast.error("Invalid data: " + error.details)
+	} else {
+		toast.error("An error occurred. Please try again.")
+	}
+}
+```
+
+## Quality Checklist
+
+Before providing analysis, ensure:
+- ✅ Fetched latest OpenAPI specification
+- ✅ Extracted all required/optional fields
+- ✅ Documented all possible status codes
+- ✅ Created complete TypeScript interfaces
+- ✅ Provided working code examples
+- ✅ Noted security considerations
+- ✅ Aligned with project conventions
+- ✅ Included error handling patterns
+
+## Examples
+
+### Example 1: User asks to implement user creation
+
+```
+User: "I need to implement user creation"
+
+Claude: [Invokes api-spec-analyzer Skill]
+1. Fetches OpenAPI spec for POST /api/users
+2. Extracts request/response schemas
+3. Generates TypeScript interfaces
+4. Provides API service implementation
+5. Shows TanStack Query hook example
+6. Lists validation requirements
+```
+
+### Example 2: User gets 400 error
+
+```
+User: "I'm getting a 400 error when creating a tenant"
+
+Claude: [Invokes api-spec-analyzer Skill]
+1. Fetches POST /api/tenants specification
+2. Identifies required fields and formats
+3. Compares user's implementation with spec
+4. Points out data type mismatches
+5. Provides corrected implementation
+```
+
+### Example 3: Replacing mock API
+
+```
+User: "Replace mockUserApi with real backend"
+
+Claude: [Invokes api-spec-analyzer Skill]
+1. Fetches all /api/users/* endpoints
+2. Generates interfaces for all CRUD operations
+3. Shows how to implement each API function
+4. Maintains same interface as mock API
+5. Provides migration checklist
+```
+
+## Notes
+
+- Always fetch fresh documentation when user reports API issues
+- Quote directly from OpenAPI spec when documenting requirements
+- Flag ambiguities or missing information in documentation
+- Prioritize type safety - use strict TypeScript types
+- Follow existing patterns in the codebase
+- Consider OWASP security guidelines
+- Provide actionable, copy-paste-ready code
