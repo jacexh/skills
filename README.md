@@ -51,3 +51,10 @@ This repository is a collection of Agent Skills for Gemini CLI.
 ## License
 
 This repository is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for details.
+
+
+## Third Resources
+
+- [Agent Skill Guide](https://agentskills.guide/)
+- [Agent Skill](https://agentskills.io/)
+- [Awesome Agent Skills](https://github.com/heilcheng/awesome-agent-skills)
