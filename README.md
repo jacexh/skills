@@ -28,6 +28,8 @@ This repository is a collection of Agent Skills for Gemini CLI.
 ## Skills List
 
 ### Go
+- [golang](skills/golang/SKILL.md): Build Go backend services with goroutines, channels, and idiomatic error handling.
+- [golang-performance](skills/golang-performance/SKILL.md): Profile Go applications (pprof), run benchmarks, and optimize memory/CPU usage.
 - [use-modern-go](skills/use-modern-go/SKILL.md): Apply modern Go syntax guidelines based on the project's Go version.
 
 ### Python
@@ -48,13 +50,24 @@ This repository is a collection of Agent Skills for Gemini CLI.
 - [python-type-safety](skills/python-type-safety/SKILL.md): Python type safety with type hints, generics, protocols, and strict checking.
 - [uv-package-manager](skills/uv-package-manager/SKILL.md): Master the uv package manager for fast Python dependency management.
 
-## License
+### Frontend
+- [react-patterns](skills/react-patterns/SKILL.md): Modern React 19+ patterns including React Compiler, Server Actions, and new hooks.
+- [react-typescript](skills/react-typescript/SKILL.md): Modern React 19+ patterns with TypeScript, TanStack Query, and Zod.
+- [vue-typescript](skills/vue-typescript/SKILL.md): Vue 3 + TypeScript with Composition API, Pinia, and Vue Router.
 
-This repository is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for details.
+### API & Database
+- [api-design](skills/api-design/SKILL.md): Design REST/GraphQL APIs, including versioning, pagination, and documentation.
+- [database-patterns](skills/database-patterns/SKILL.md): Database schema design, repository patterns, migrations, and query optimization.
 
+### General
+- [documentation-standards](skills/documentation-standards/SKILL.md): Technical documentation standards following Google, Microsoft, and GitLab style guides.
 
 ## Third Resources
 
 - [Agent Skill Guide](https://agentskills.guide/)
 - [Agent Skill](https://agentskills.io/)
 - [Awesome Agent Skills](https://github.com/heilcheng/awesome-agent-skills)
+
+## License
+
+This repository is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for details.
