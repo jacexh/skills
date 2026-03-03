@@ -62,6 +62,7 @@ This repository is a collection of Agent Skills for Gemini CLI.
 
 ### General
 - [documentation-standards](skills/documentation-standards/SKILL.md): Technical documentation standards following Google, Microsoft, and GitLab style guides.
+- [video-merger](skills/video-merger/SKILL.md): Merge multiple video files into a single output file using ffmpeg.
 
 ## Third Resources
 
