@@ -36,7 +36,7 @@ This repository is a collection of Agent Skills for Gemini CLI.
 - [async-python-patterns](skills/async-python-patterns/SKILL.md): Master Python asyncio, concurrent programming, and async/await patterns.
 - [python-anti-patterns](skills/python-anti-patterns/SKILL.md): Common Python anti-patterns to avoid.
 - [python-background-jobs](skills/python-background-jobs/SKILL.md): Python background job patterns including task queues and workers.
-- [python-code-style](skills/python-c ode-style/SKILL.md): Python code style, linting, formatting, and documentation standards.
+- [python-code-style](skills/python-code-style/SKILL.md): Python code style, linting, formatting, and documentation standards.
 - [python-configuration](skills/python-configuration/SKILL.md): Python configuration management via environment variables and typed settings.
 - [python-design-patterns](skills/python-design-patterns/SKILL.md): Python design patterns including KISS, SoC, and SRP.
 - [python-error-handling](skills/python-error-handling/SKILL.md): Python error handling patterns and exception hierarchies.
@@ -61,14 +61,17 @@ This repository is a collection of Agent Skills for Gemini CLI.
 - [database-patterns](skills/database-patterns/SKILL.md): Database schema design, repository patterns, migrations, and query optimization.
 
 ### General
+- [brainstorming](skills/brainstorming/SKILL.md): Explore user intent, requirements, and design before implementation.
 - [documentation-standards](skills/documentation-standards/SKILL.md): Technical documentation standards following Google, Microsoft, and GitLab style guides.
 - [video-merger](skills/video-merger/SKILL.md): Merge multiple video files into a single output file using ffmpeg.
+- [writing-plans](skills/writing-plans/SKILL.md): Create comprehensive, bite-sized implementation plans before touching code.
 
 ## Third Resources
 
 - [Agent Skill Guide](https://agentskills.guide/)
 - [Agent Skill](https://agentskills.io/)
 - [Awesome Agent Skills](https://github.com/heilcheng/awesome-agent-skills)
+- [superpowers](https://github.com/obra/superpowers)
 
 ## License
 
