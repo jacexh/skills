@@ -92,6 +92,7 @@ Paste the content of any `SKILL.md` into the tool's **system prompt**, **custom 
 ### General
 - [brainstorming](skills/brainstorming/SKILL.md): Explore user intent, requirements, and design before implementation.
 - [documentation-standards](skills/documentation-standards/SKILL.md): Technical documentation standards following Google, Microsoft, and GitLab style guides.
+- [tdd](skills/tdd/SKILL.md): Apply Test-Driven Development discipline — Red-Green-Refactor cycle, language-agnostic TDD methodology for any language.
 - [video-merger](skills/video-merger/SKILL.md): Merge multiple video files into a single output file using ffmpeg.
 - [writing-plans](skills/writing-plans/SKILL.md): Create comprehensive, bite-sized implementation plans before touching code.
 
