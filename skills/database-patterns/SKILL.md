@@ -38,25 +38,54 @@ Database design and access patterns for relational and NoSQL databases.
 ### Common Table Patterns
 
 ```sql
--- Users table
+-- Users table (PostgreSQL)
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL,
     status VARCHAR(20) DEFAULT 'active',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    version INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()  -- NOTE: only set on INSERT; update via trigger or app layer
 );
 
--- Soft delete pattern
-ALTER TABLE users ADD COLUMN deleted_at TIMESTAMP NULL;
+-- Soft delete pattern (PostgreSQL)
+ALTER TABLE users ADD COLUMN deleted_at TIMESTAMPTZ NULL;
 CREATE INDEX idx_users_deleted ON users(deleted_at) WHERE deleted_at IS NULL;
 
 -- Audit columns
 ALTER TABLE users ADD COLUMN created_by UUID REFERENCES users(id);
 ALTER TABLE users ADD COLUMN updated_by UUID REFERENCES users(id);
 ```
+
+```sql
+-- Users table (MySQL)
+CREATE TABLE users (
+    id CHAR(36) PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    status VARCHAR(20) DEFAULT 'active',
+    created_at BIGINT NOT NULL,  -- Unix timestamp in milliseconds
+    updated_at BIGINT NOT NULL   -- Unix timestamp in milliseconds
+);
+
+-- Soft delete pattern (MySQL)
+ALTER TABLE users ADD COLUMN deleted_at BIGINT NULL;  -- NULL means not deleted
+CREATE INDEX idx_users_deleted ON users(deleted_at);
+```
+
+### Timestamp Types by Database
+
+| Database | Recommended Type | Notes |
+|----------|-----------------|-------|
+| PostgreSQL | `TIMESTAMPTZ` | Stores as UTC internally, timezone-aware, recommended default |
+| MySQL | `BIGINT` | Store Unix timestamp in milliseconds; avoids timezone issues and 2038 limit |
+
+**Recommendation:**
+- PostgreSQL: use `TIMESTAMPTZ` for all time columns
+- MySQL: use `BIGINT` (Unix ms) + handle conversion at application layer
 
 ### Relationships
 
@@ -66,7 +95,7 @@ CREATE TABLE orders (
     id UUID PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(id),
     total DECIMAL(10,2) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 CREATE INDEX idx_orders_user ON orders(user_id);
 
@@ -155,13 +184,7 @@ INSERT INTO users (name, email) VALUES
 -- Offset pagination (simple but slow for large offsets)
 SELECT * FROM users ORDER BY created_at DESC LIMIT 20 OFFSET 100;
 
--- Cursor pagination (better performance)
-SELECT * FROM users
-WHERE created_at < $cursor
-ORDER BY created_at DESC
-LIMIT 20;
-
--- Keyset pagination with tie-breaker
+-- Keyset pagination with tie-breaker (recommended: handles duplicate timestamps correctly)
 SELECT * FROM users
 WHERE (created_at, id) < ($cursor_time, $cursor_id)
 ORDER BY created_at DESC, id DESC
@@ -212,7 +235,7 @@ class PostgresUserRepository implements UserRepository {
 
   async findById(id: string): Promise<User | null> {
     const result = await this.db.query(
-      'SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL',
+      'SELECT id, name, email, status, created_at FROM users WHERE id = $1 AND deleted_at IS NULL',
       [id]
     );
     return result.rows[0] || null;
@@ -222,7 +245,7 @@ class PostgresUserRepository implements UserRepository {
     const result = await this.db.query(
       `INSERT INTO users (name, email, password_hash)
        VALUES ($1, $2, $3)
-       RETURNING *`,
+       RETURNING id, name, email, status, created_at`,
       [data.name, data.email, await hashPassword(data.password)]
     );
     return result.rows[0];
@@ -240,9 +263,9 @@ async function transferFunds(fromId: string, toId: string, amount: number) {
   try {
     await client.query('BEGIN');
 
-    // Lock accounts
+    // Lock accounts in consistent order to prevent deadlocks
     await client.query(
-      'SELECT * FROM accounts WHERE id IN ($1, $2) FOR UPDATE',
+      'SELECT id FROM accounts WHERE id IN ($1, $2) FOR UPDATE ORDER BY id',
       [fromId, toId]
     );
 
@@ -267,6 +290,32 @@ async function transferFunds(fromId: string, toId: string, amount: number) {
   }
 }
 ```
+
+### Optimistic Locking
+
+Use a `version` column (defined in table schema) to detect concurrent modifications without holding locks.
+
+```typescript
+async function updateOrder(id: string, data: UpdateOrderInput, version: number) {
+  const result = await db.query(
+    `UPDATE orders
+     SET status = $1, version = version + 1
+     WHERE id = $2 AND version = $3
+     RETURNING id, version`,
+    [data.status, id, version]
+  );
+
+  if (result.rowCount === 0) {
+    throw new Error('Conflict: record was modified by another process');
+  }
+
+  return result.rows[0];
+}
+```
+
+- Suitable for low-contention scenarios (read-heavy, occasional conflicts)
+- Prefer over `FOR UPDATE` when locks would be held across network round-trips
+- Caller must retry on conflict
 
 ### Isolation Levels
 
