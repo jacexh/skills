@@ -1,29 +1,58 @@
-# Agent Skills Repository
+# Agent Skills
 
-This repository is a collection of Agent Skills for Gemini CLI.
+A collection of reusable AI agent skills — structured prompts and references that teach AI coding assistants how to apply best practices across languages and frameworks.
+
+Each skill is a self-contained directory with a `SKILL.md` file. The skills work with any AI agent that supports custom instructions: **Gemini CLI**, **Claude Code**, **OpenAI Codex**, **Cursor**, **Windsurf**, and others.
 
 ## Repository Structure
 
-- `skills/`: Individual skill directories. Each contains a `SKILL.md` file.
-- `resources/`: Shared assets, templates, and references used across multiple skills.
-- `.gitignore`: Configured to ignore common noise and `.skill` packages.
+- `skills/`: Individual skill directories. Each contains a `SKILL.md` (and optionally `scripts/`, `references/`, `assets/`).
+- `resources/`: Shared assets and references used across multiple skills.
 
-## How to Create a New Skill
+## Installation
 
-1.  Use the `init_skill.cjs` script to scaffold a new skill:
-    ```bash
-    # Ensure you have the path to gemini-cli-core/dist/src/skills/builtin/skill-creator/scripts/
-    node <path-to-skill-creator>/init_skill.cjs <skill-name> --path skills/
-    ```
-2.  Edit the `SKILL.md` and add resources to `scripts/`, `references/`, or `assets/`.
-3.  Package the skill:
-    ```bash
-    node <path-to-skill-creator>/package_skill.cjs skills/<skill-name>
-    ```
-4.  Install the skill:
-    ```bash
-    gemini skills install skills/<skill-name>.skill --scope workspace
-    ```
+### Gemini CLI
+
+```bash
+# Package a skill
+node <path-to-gemini-cli-core>/dist/src/skills/builtin/skill-creator/scripts/package_skill.cjs skills/<skill-name>
+
+# Install (user scope)
+gemini skills install skills/<skill-name>.skill --scope user
+
+# Or install all at once
+for skill in skills/*/; do
+  node <path-to-gemini-cli-core>/dist/src/skills/builtin/skill-creator/scripts/package_skill.cjs "$skill"
+  gemini skills install "${skill%/}.skill" --scope user
+done
+```
+
+### Claude Code
+
+Claude Code has a native skills system that uses the same `SKILL.md` format as this repository. Skills live under `~/.claude/skills/` (global) or `.claude/skills/` (project-level) and are only loaded when invoked — they don't consume context on every session.
+
+```bash
+# Install a single skill
+cp -r skills/<skill-name> ~/.claude/skills/
+
+# Install all skills globally
+cp -r skills/. ~/.claude/skills/
+
+# Or symlink for live updates (edits to the repo reflect immediately)
+ln -s "$(pwd)/skills/<skill-name>" ~/.claude/skills/<skill-name>
+```
+
+After installation, invoke any skill with `/<skill-name>` in Claude Code.
+
+### OpenAI Codex / Cursor / Windsurf
+
+Paste the content of any `SKILL.md` into the tool's **system prompt**, **custom instructions**, or **rules** configuration. The YAML frontmatter block at the top (`---`) can be omitted if the tool doesn't support it.
+
+### Creating a New Skill
+
+1. Create a directory under `skills/<skill-name>/`.
+2. Add a `SKILL.md` with a YAML frontmatter block (`name`, `description`) and the instruction content.
+3. Optionally add `scripts/`, `references/`, or `assets/` subdirectories.
 
 ## Skills List
 
@@ -66,7 +95,7 @@ This repository is a collection of Agent Skills for Gemini CLI.
 - [video-merger](skills/video-merger/SKILL.md): Merge multiple video files into a single output file using ffmpeg.
 - [writing-plans](skills/writing-plans/SKILL.md): Create comprehensive, bite-sized implementation plans before touching code.
 
-## Third Resources
+## Related Resources
 
 - [Agent Skill Guide](https://agentskills.guide/)
 - [Agent Skill](https://agentskills.io/)
@@ -75,4 +104,4 @@ This repository is a collection of Agent Skills for Gemini CLI.
 
 ## License
 
-This repository is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for details.
+Apache License 2.0. See [LICENSE](LICENSE) for details.
