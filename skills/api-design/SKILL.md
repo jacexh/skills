@@ -1,20 +1,20 @@
 ---
 name: api-design
+description: Use when designing REST or GraphQL APIs, defining endpoints, implementing pagination/filtering, handling API versioning, or establishing API documentation with OpenAPI/Swagger.
 metadata:
   version: 1.0.0
   updated: 2026-01-20
-description: Use when designing REST or GraphQL APIs, defining endpoints, implementing pagination/filtering, handling API versioning, or establishing API documentation with OpenAPI/Swagger.
-keywords:
-  - REST API
-  - GraphQL
-  - API design
-  - endpoints
-  - pagination
-  - filtering
-  - versioning
-  - OpenAPI
-  - Swagger
-plugin: dev
+  keywords:
+    - REST API
+    - GraphQL
+    - API design
+    - endpoints
+    - pagination
+    - filtering
+    - versioning
+    - OpenAPI
+    - Swagger
+  plugin: dev
 ---
 
 # API Design Patterns

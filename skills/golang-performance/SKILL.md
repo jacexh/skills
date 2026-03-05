@@ -1,19 +1,19 @@
 ---
 name: golang-performance
+description: Use when profiling Go applications (pprof), running benchmarks, optimizing memory/CPU usage, or debugging performance bottlenecks in production Go code.
 metadata:
   version: 1.0.0
   updated: 2026-01-20
-description: Use when profiling Go applications (pprof), running benchmarks, optimizing memory/CPU usage, or debugging performance bottlenecks in production Go code.
-keywords:
-  - Go performance
-  - profiling
-  - pprof
-  - benchmarking
-  - optimization
-  - memory optimization
-  - CPU profiling
-  - performance tuning
-plugin: dev
+  keywords:
+    - Go performance
+    - profiling
+    - pprof
+    - benchmarking
+    - optimization
+    - memory optimization
+    - CPU profiling
+    - performance tuning
+  plugin: dev
 ---
 
 # Go Performance Optimization

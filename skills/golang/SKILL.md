@@ -1,20 +1,20 @@
 ---
 name: golang
+description: Use when building Go backend services, implementing goroutines/channels, handling errors idiomatically, writing tests with testify, or following Go best practices for APIs/CLI tools.
 metadata:
   version: 2.0.0
   updated: 2026-01-20
-description: Use when building Go backend services, implementing goroutines/channels, handling errors idiomatically, writing tests with testify, or following Go best practices for APIs/CLI tools.
-keywords:
-  - Go
-  - Golang
-  - concurrency
-  - goroutines
-  - channels
-  - error handling
-  - testing
-  - backend
-  - API
-plugin: dev
+  keywords:
+    - Go
+    - Golang
+    - concurrency
+    - goroutines
+    - channels
+    - error handling
+    - testing
+    - backend
+    - API
+  plugin: dev
 ---
 
 # Go Development Best Practices
