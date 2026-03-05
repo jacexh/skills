@@ -1,6 +1,8 @@
 ---
 name: database-patterns
-version: 1.0.0
+metadata:
+  version: 1.0.0
+  updated: 2026-01-20
 description: Use when designing database schemas, implementing repository patterns, writing optimized queries, managing migrations, or working with indexes and transactions for SQL/NoSQL databases.
 keywords:
   - database design
@@ -14,7 +16,6 @@ keywords:
   - migrations
   - transactions
 plugin: dev
-updated: 2026-01-20
 ---
 
 # Database Patterns

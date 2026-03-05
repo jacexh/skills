@@ -1,6 +1,8 @@
 ---
 name: documentation-standards
-version: 1.0.0
+metadata:
+  version: 1.0.0
+  updated: 2026-01-20
 description: Use when writing README files, API documentation, user guides, or technical documentation following industry standards from Google, Microsoft, and GitLab style guides.
 keywords:
   - documentation
@@ -11,7 +13,6 @@ keywords:
   - Markdown
   - documentation best practices
 plugin: dev
-updated: 2026-01-20
 research_source: 73+ authoritative sources with 98% factual integrity
 ---
 

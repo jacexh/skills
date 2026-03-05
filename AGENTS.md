@@ -22,16 +22,17 @@ Every `SKILL.md` must begin with a YAML frontmatter block:
 ---
 name: <skill-name>          # Required: matches the directory name exactly
 description: <description>  # Required: one sentence; start with "Use when..."
-version: 1.0.0              # Optional: semver, increment on breaking changes
-updated: YYYY-MM-DD         # Optional: date of last significant update
+metadata:
+  version: 1.0.0            # Optional: semver, increment on breaking changes
+  updated: YYYY-MM-DD       # Optional: date of last significant update
 ---
 ```
 
 **Frontmatter rules:**
 - `name` must exactly match the directory name (e.g., directory `skills/tdd/` → `name: tdd`)
 - `description` must be a single line; include trigger conditions ("Use when...")
-- `version` follows semver; omit if not tracking versions
-- No other frontmatter fields are used
+- `version` and `updated` go under `metadata`; omit `metadata` entirely if neither is needed
+- No other top-level frontmatter fields are used
 
 ## Naming Conventions
 
