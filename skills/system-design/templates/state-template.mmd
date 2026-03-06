@@ -1,0 +1,19 @@
+stateDiagram-v2
+    [*] --> InitialState
+    InitialState --> StateTwo: trigger_action()
+    StateTwo --> StateThree: another_action()
+    StateTwo --> StateFour: error_condition()
+    StateThree --> [*]
+    StateFour --> StateTwo: retry()
+
+    note right of StateTwo
+        Data changes:
+        - field_name set to value
+        - timestamp updated
+    end note
+
+    note right of StateFour
+        Error state:
+        - error_message captured
+        - retry_count incremented
+    end note
