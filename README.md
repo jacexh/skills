@@ -89,12 +89,26 @@ Paste the content of any `SKILL.md` into the tool's **system prompt**, **custom 
 - [api-spec-analyzer](skills/api-spec-analyzer/SKILL.md): Analyze OpenAPI specs to provide TypeScript interfaces, request/response formats, and implementation guidance.
 - [database-patterns](skills/database-patterns/SKILL.md): Database schema design, repository patterns, migrations, and query optimization.
 
+### Workflow & Methodology
+- [code-reviewer](skills/code-reviewer/SKILL.md): Senior code reviewer subagent — plan alignment, code quality, architecture, issue categorization.
+- [dispatching-parallel-agents](skills/dispatching-parallel-agents/SKILL.md): Split independent problems across parallel subagents with focused prompts.
+- [executing-plans](skills/executing-plans/SKILL.md): Structured batch execution of plans with checkpoints, blocker handling, and review gates.
+- [finishing-a-development-branch](skills/finishing-a-development-branch/SKILL.md): Structured branch completion — verify tests, merge/PR/keep/discard, cleanup worktree.
+- [receiving-code-review](skills/receiving-code-review/SKILL.md): Critically evaluate review feedback — verify against codebase before acting, push back when wrong.
+- [requesting-code-review](skills/requesting-code-review/SKILL.md): Structured code review dispatch using subagents with mandatory review points.
+- [subagent-driven-development](skills/subagent-driven-development/SKILL.md): Dispatch fresh subagent per task with two-stage review (spec compliance + code quality).
+- [systematic-debugging](skills/systematic-debugging/SKILL.md): 4-phase root-cause debugging — investigate, pattern analysis, hypothesis, implement.
+- [using-git-worktrees](skills/using-git-worktrees/SKILL.md): Systematic git worktree creation with safety verification and clean test baseline.
+- [verification-before-completion](skills/verification-before-completion/SKILL.md): Evidence before claims — no completion without fresh verification.
+
 ### General
 - [brainstorming](skills/brainstorming/SKILL.md): Explore user intent, requirements, and design before implementation.
-- [documentation-standards](skills/documentation-standards/SKILL.md): Technical documentation standards following Google, Microsoft, and GitLab style guides.
+- [skill-creator](skills/skill-creator/SKILL.md): Create or update skills with proper structure, scripts, references, and assets.
+- [system-design](skills/system-design/SKILL.md): Design systems from requirements using EventStorming, Mermaid diagrams, and progressive elaboration through 5 phases.
 - [tdd](skills/tdd/SKILL.md): Apply Test-Driven Development discipline — Red-Green-Refactor cycle, language-agnostic TDD methodology for any language.
 - [video-merger](skills/video-merger/SKILL.md): Merge multiple video files into a single output file using ffmpeg.
 - [writing-plans](skills/writing-plans/SKILL.md): Create comprehensive, bite-sized implementation plans before touching code.
+- [writing-skills](skills/writing-skills/SKILL.md): Create and test skills using TDD methodology — pressure scenarios, CSO, and rationalization resistance.
 
 ## Related Resources
 
