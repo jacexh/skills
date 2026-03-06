@@ -60,6 +60,7 @@ Paste the content of any `SKILL.md` into the tool's **system prompt**, **custom 
 - [golang](skills/golang/SKILL.md): Build Go backend services with goroutines, channels, and idiomatic error handling.
 - [golang-performance](skills/golang-performance/SKILL.md): Profile Go applications (pprof), run benchmarks, and optimize memory/CPU usage.
 - [use-modern-go](skills/use-modern-go/SKILL.md): Apply modern Go syntax guidelines based on the project's Go version.
+- [go-web-ddd-framework](skills/go-web-ddd-framework/SKILL.md): The authoritative development and architectural framework for Go Web projects built on Domain-Driven Design (DDD) and Clean Architecture principles.
 
 ### Python
 - [async-python-patterns](skills/async-python-patterns/SKILL.md): Master Python asyncio, concurrent programming, and async/await patterns.
