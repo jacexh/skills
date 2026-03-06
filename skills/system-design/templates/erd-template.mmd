@@ -1,0 +1,20 @@
+erDiagram
+    EntityA ||--o{ EntityB : relationship
+    EntityA {
+        uuid id PK
+        string attribute1
+        int attribute2
+        timestamp created_at
+    }
+    EntityB {
+        uuid id PK
+        uuid entity_a_id FK
+        string attribute1
+        decimal attribute2
+    }
+    EntityC ||--|| EntityA : "one-to-one"
+    EntityC {
+        uuid id PK
+        uuid entity_a_id FK "unique"
+        string attribute1
+    }

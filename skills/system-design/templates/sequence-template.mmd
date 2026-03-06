@@ -1,0 +1,21 @@
+sequenceDiagram
+    actor User
+    participant SystemA
+    participant SystemB
+    participant ExternalService
+
+    User->>SystemA: initiating action
+    SystemA->>SystemB: request data
+    SystemB->>ExternalService: external API call
+    ExternalService-->>SystemB: response data
+    SystemB-->>SystemA: processed data
+
+    alt Success case
+        SystemA->>SystemA: process internally
+        SystemA-->>User: success response
+    else Error case
+        SystemA-->>User: error response with details
+    end
+
+    Note over SystemA,SystemB: Important interaction note
+    Note right of ExternalService: External dependency
