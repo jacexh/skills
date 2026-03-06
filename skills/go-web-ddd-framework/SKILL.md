@@ -43,7 +43,7 @@ Adhering to this full structure is critical for maintaining consistency:
 │   │       │   ├── dto.go      # Request/Response DTO definitions
 │   │       │   └── assembler.go # DTO <-> Entity mapping
 │   │       ├── infrastructure/ # Repository Impls, DOs, Converters
-│   │       └── <module>.go     # fx.Module (Registration & Wiring)
+│   │       └── module.go       # fx.Module (Registration & Wiring)
 │   └── pkg/            # Shared Framework Logic (DB, HTTP, Log, EventBus)
 ├── pkg/                # Publicly importable packages
 │   └── gen/            # Generated code (ConnectRPC, Protobuf)
