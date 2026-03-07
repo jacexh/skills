@@ -1,461 +1,506 @@
 ---
 name: go-web-ddd-framework
-description: "Use when building Go Web projects with DDD and Clean Architecture on the github.com/go-jimu/template ecosystem. Covers: project bootstrapping, layer isolation, Value Objects, Aggregate Roots, CQRS, Domain Events via Mediator, Unit of Work transactions, error/logging lifecycle, fx wiring, and testing strategy."
+description: "Use when building Go Web projects with DDD and Clean Architecture on the github.com/go-jimu/template ecosystem. Covers: project bootstrapping with gonew, layer isolation (domain/application/infrastructure), Aggregate Roots with validation and events, Value Objects, CQRS (Commands + Queries), Domain Events via Mediator, Repository pattern with XORM, ConnectRPC API layer, fx dependency injection wiring, error handling with oops, and testing strategy. Use when: (1) creating a new Go DDD project from scratch, (2) adding a new bounded context/domain module, (3) defining entities, VOs, or repositories, (4) implementing CQRS handlers, (5) wiring fx modules, (6) writing proto/ConnectRPC APIs."
 metadata:
-  version: 0.3
+  version: 1.0
 ---
 
-# Go DDD Framework — Production Standards
+# Go-Jimu DDD Framework — Production Guide
 
-Strict layer isolation + deterministic component wiring. Every decision below is a production constraint, not a suggestion.
+Based on `github.com/go-jimu/template`. All code examples are from the actual codebase.
 
-## Bootstrap
+## Quick Start — Bootstrap a New Project
 
 ```bash
+# 1. Create project from template
 go install golang.org/x/tools/cmd/gonew@latest
 gonew github.com/go-jimu/template <your-module-path>
-make tools      # Install Buf + ConnectRPC generators
-buf generate    # Generate API contracts
+cd <your-project>
+
+# 2. Install dev tools (buf, grpcurl, protoc-gen-go, protoc-gen-connect-go)
+make tools
+
+# 3. Generate protobuf code
+buf generate
+
+# 4. Setup database
 mysql -u root -p < scripts/sql/init.sql
+
+# 5. Configure (edit configs/default.yml or use env vars)
+# MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DATABASE
+
+# 6. Run
+make server        # go run cmd/main.go
+make unittest      # go test -race with coverage
 ```
 
-## Directory Structure
+## Architecture — Directory Structure
 
 ```text
 cmd/
-  main.go               # fx.App entry point
-  client/               # Optional CLI entry
+  main.go                        # fx.App entry — wires all modules
+  client/                        # Example ConnectRPC client
 configs/
-  default.yml
+  default.yml                    # YAML config with ${ENV_VAR:default} support
 internal/
-  business/
+  business/                      # DDD Bounded Contexts
     <module>/
-      domain/           # Pure business: Entities, VOs, Domain Services, Repo interfaces, Events
-      application/
-        command/        # Write handlers — orchestrate only, no business logic
-        query/          # Read handlers — bypass domain, map directly to DTOs
-        handler/        # Async event handlers
-        dto.go          # Request/Response DTOs
-        assembler.go    # DTO <-> Entity mapping
-      infrastructure/   # Repo impls, DOs, DB converters
-      module.go         # fx.Module — wiring & registration
-  pkg/                  # Shared internals: DB, HTTP, Log, EventBus
-pkg/
-  gen/                  # Generated ConnectRPC/Protobuf code
-proto/                  # *.proto API definitions
-scripts/
-  sql/init.sql
-Makefile                # gen, build, test, tools
+      domain/                    # PURE layer: entities, VOs, repo interfaces, events
+        <entity>.go              # Aggregate root with validation
+        event.go                 # Domain event definitions
+        repository.go            # Repository interface (operates on aggregates only)
+      application/               # USE CASE layer: commands, queries, event handlers, DTOs
+        application.go           # Application service — implements ConnectRPC handler
+        command.go               # Write-side command handlers
+        query.go                 # Read-side query handlers + QueryRepository interface
+        handler.go               # Domain event handlers
+        dto.go                   # Request/Response DTOs
+        assembler.go             # Domain Entity -> Proto response conversion
+      infrastructure/            # ADAPTER layer: repo impls, DB models, converters
+        <entity>.go              # Repository implementation (XORM)
+        do.go                    # Data Objects (DB table mapping)
+        converter.go             # Entity <-> DO <-> DTO converters
+      <module>.go                # fx.Module — wires all layers together
+  pkg/                           # Shared infrastructure
+    connectrpc/                  # ConnectRPC server + interceptors
+    database/                    # XORM driver + custom column types
+    eventbus/                    # Mediator factory
+    httpsrv/                     # Chi HTTP router
+    grpcsrv/                     # gRPC server
+    validator/                   # go-playground/validator wrapper
+    module.go                    # fx.Module for all infrastructure
+pkg/gen/                         # Generated ConnectRPC/Protobuf code (DO NOT EDIT)
+proto/                           # .proto API definitions
+scripts/sql/                     # Database init scripts
 ```
 
-## Domain Core Patterns
+## Technology Stack
+
+| Concern | Library | Import |
+|---|---|---|
+| DI | Uber fx | `go.uber.org/fx` |
+| RPC/HTTP | ConnectRPC | `connectrpc.com/connect` |
+| Router | Chi v5 | `github.com/go-chi/chi/v5` |
+| ORM | XORM | `xorm.io/xorm` |
+| Validation | go-playground | `github.com/go-playground/validator/v10` |
+| Logging | slog (stdlib) | `log/slog` + `github.com/go-jimu/components/sloghelper` |
+| Errors | oops | `github.com/samber/oops` |
+| Events | Mediator | `github.com/go-jimu/components/mediator` |
+| Protobuf | Buf | `buf generate` |
+| Copier | jinzhu/copier | `github.com/jinzhu/copier` |
+
+**Do NOT introduce alternatives** (no GORM, no Gin, no standard net/http mux).
+
+## Domain Layer — Pure Business Logic
 
 ### Aggregate Root
 
-The aggregate root guards all invariants. External code NEVER touches sub-entities directly.
+Public exported fields with `validate` tags. Contains `mediator.EventCollection` for domain events.
 
 ```go
-// domain/user.go
-type UserID string
-
+// internal/business/<module>/domain/<entity>.go
 type User struct {
-    id     UserID
-    email  Email        // Value Object
-    status UserStatus
-    events []DomainEvent
+    ID             string `validate:"required"`
+    Name           string `validate:"required"`
+    Email          string `validate:"required,email"`
+    HashedPassword []byte `copier:"Password"`
+    Events         mediator.EventCollection
+    Version        int       // 0 = new (INSERT), >0 = existing (UPDATE)
+    Dirty          int32     // Change tracking flag
+    Deleted        bool      // Soft delete flag
+    CreatedAt      time.Time
+    UpdatedAt      time.Time
+}
+```
+
+**Factory method** — validates, generates ID (UUID v7), raises domain event:
+
+```go
+func NewUser(name, password, email string) (*User, error) {
+    user := &User{
+        ID:     uuid.Must(uuid.NewV7()).String(),
+        Name:   name,
+        Email:  email,
+        Events: mediator.NewEventCollection(),
+    }
+    if err := user.genPassword(password); err != nil {
+        return nil, err
+    }
+    if err := user.Validate(); err != nil {
+        return nil, err
+    }
+    user.Events.Add(EventUserCreated{ID: user.ID, Name: name, Email: email})
+    return user, nil
 }
 
-func NewUser(id UserID, email Email) (*User, error) {
-    if id == "" {
-        return nil, oops.Errorf("user id is required")
-    }
-    u := &User{id: id, email: email, status: StatusActive}
-    u.raise(&UserRegistered{UserID: string(id), Email: string(email)})
-    return u, nil
+func (u *User) Validate() error {
+    return validator.Validate(u)
 }
+```
 
-func (u *User) ChangeEmail(newEmail Email) error {
-    if u.status != StatusActive {
-        return oops.Errorf("cannot change email of inactive user")
+**Business methods** — state changes happen via methods, mark dirty:
+
+```go
+func (u *User) ChangePassword(old, new string) error {
+    if err := bcrypt.CompareHashAndPassword(u.HashedPassword, []byte(old)); err != nil {
+        return err
     }
-    u.email = newEmail
-    u.raise(&UserEmailChanged{UserID: string(u.id), NewEmail: string(newEmail)})
+    if err := u.genPassword(new); err != nil {
+        return err
+    }
+    atomic.CompareAndSwapInt32(&u.Dirty, 0, 1)
     return nil
-}
-
-func (u *User) PopEvents() []DomainEvent {
-    evts := u.events
-    u.events = nil
-    return evts
-}
-
-func (u *User) raise(e DomainEvent) { u.events = append(u.events, e) }
-```
-
-### Value Objects
-
-Use VOs for domain concepts with no identity — they validate themselves and are immutable.
-
-```go
-// domain/email.go
-type Email string
-
-func NewEmail(raw string) (Email, error) {
-    if !strings.Contains(raw, "@") {
-        return "", oops.Errorf("invalid email: %s", raw)
-    }
-    return Email(strings.ToLower(raw)), nil
-}
-
-// domain/money.go
-type Money struct {
-    amount   int64  // store cents, never float
-    currency string
-}
-
-func NewMoney(amount int64, currency string) (Money, error) {
-    if amount < 0 {
-        return Money{}, oops.Errorf("money amount cannot be negative")
-    }
-    return Money{amount: amount, currency: currency}, nil
-}
-
-func (m Money) Add(other Money) (Money, error) {
-    if m.currency != other.currency {
-        return Money{}, oops.Errorf("currency mismatch: %s vs %s", m.currency, other.currency)
-    }
-    return Money{amount: m.amount + other.amount, currency: m.currency}, nil
-}
-```
-
-### Repository Interface
-
-Defined in `domain/`, operates on Aggregate Roots ONLY.
-
-```go
-// domain/repository.go
-type UserRepository interface {
-    FindByID(ctx context.Context, id UserID) (*User, error)
-    Save(ctx context.Context, user *User) error
-    Delete(ctx context.Context, id UserID) error
 }
 ```
 
 ### Domain Events
 
 ```go
-// domain/events.go
-type DomainEvent interface {
-    EventName() string
+// internal/business/<module>/domain/event.go
+type EventUserCreated struct {
+    ID    string
+    Name  string
+    Email string
 }
 
-type UserRegistered struct {
-    UserID string
-    Email  string
-}
-func (e *UserRegistered) EventName() string { return "user.registered" }
+const EKUserCreated = mediator.EventKind("user.created")
 
-type UserEmailChanged struct {
-    UserID   string
-    NewEmail string
+func (uc EventUserCreated) Kind() mediator.EventKind {
+    return EKUserCreated
 }
-func (e *UserEmailChanged) EventName() string { return "user.email_changed" }
 ```
 
-### Domain Services
+### Repository Interface
 
-Use only when a business operation spans multiple aggregates.
+Defined in domain, operates on aggregate roots only. Separate write and read interfaces for CQRS.
 
 ```go
-// domain/transfer_service.go
-type TransferService struct {
-    accounts AccountRepository
-}
-
-func (s *TransferService) Transfer(ctx context.Context, fromID, toID AccountID, amount Money) error {
-    from, err := s.accounts.FindByID(ctx, fromID)
-    if err != nil {
-        return oops.With("from_id", fromID).Wrap(err)
-    }
-    to, err := s.accounts.FindByID(ctx, toID)
-    if err != nil {
-        return oops.With("to_id", toID).Wrap(err)
-    }
-    if err := from.Debit(amount); err != nil {
-        return err
-    }
-    if err := to.Credit(amount); err != nil {
-        return err
-    }
-    // Save both within a single Unit of Work
-    return s.accounts.SaveAll(ctx, from, to)
+// internal/business/<module>/domain/repository.go
+type Repository interface {
+    Get(context.Context, string) (*User, error)
+    Save(context.Context, *User) error
 }
 ```
 
-## CQRS
+## Application Layer — Use Cases & CQRS
+
+### Application Service
+
+Groups Commands + Queries. Implements the ConnectRPC handler interface. Subscribes event handlers to mediator.
+
+```go
+// internal/business/<module>/application/application.go
+type Application struct {
+    repo     domain.Repository
+    Queries  *Queries
+    Commands *Commands
+    handlers []mediator.EventHandler
+}
+
+func NewApplication(ev mediator.Mediator, repo domain.Repository, read QueryRepository) userv1connect.UserAPIHandler {
+    app := &Application{
+        repo: repo,
+        Queries:  &Queries{FindUserList: NewFindUserListHandler(read)},
+        Commands: &Commands{ChangePassword: NewCommandChangePasswordHandler(repo)},
+        handlers: []mediator.EventHandler{NewUserCreatedHandler()},
+    }
+    for _, hdl := range app.handlers {
+        ev.Subscribe(hdl) // Auto-subscribe domain event handlers
+    }
+    return app
+}
+
+// ConnectRPC handler method
+func (app *Application) Get(ctx context.Context, req *connect.Request[userv1.GetRequest]) (*connect.Response[userv1.GetResponse], error) {
+    logger := sloghelper.FromContext(ctx).With(slog.String("user_id", req.Msg.GetId()))
+    entity, err := app.repo.Get(ctx, req.Msg.GetId())
+    if err != nil {
+        return nil, connect.NewError(connect.CodeNotFound, err)
+    }
+    return connect.NewResponse(assembleDomainUser(entity)), nil
+}
+```
 
 ### Command Handler (Write Path)
 
-`Controller -> application/command -> Domain/Aggregate -> Repository -> publish events`
+`API -> Application -> Domain/Aggregate -> Repository -> Raise Events`
 
 ```go
-// application/command/register_user.go
-type RegisterUserCommand struct {
-    UserID string
-    Email  string
+// internal/business/<module>/application/command.go
+type CommandChangePasswordHandler struct {
+    repo domain.Repository
 }
 
-type RegisterUserHandler struct {
-    users    domain.UserRepository
-    mediator mediator.Mediator
-}
-
-func (h *RegisterUserHandler) Handle(ctx context.Context, cmd RegisterUserCommand) error {
-    email, err := domain.NewEmail(cmd.Email)
+func (h *CommandChangePasswordHandler) Handle(ctx context.Context, logger *slog.Logger, cmd *CommandChangePassword) error {
+    entity, err := h.repo.Get(ctx, cmd.ID)
     if err != nil {
         return err
     }
-    user, err := domain.NewUser(domain.UserID(cmd.UserID), email)
-    if err != nil {
+    if err = entity.ChangePassword(cmd.OldPassword, cmd.NewPassword); err != nil {
         return err
     }
-    if err := h.users.Save(ctx, user); err != nil {
-        return oops.With("user_id", cmd.UserID).Wrap(err)
+    if err = h.repo.Save(ctx, entity); err != nil {
+        return err
     }
-    for _, evt := range user.PopEvents() {
-        h.mediator.Publish(ctx, evt)
-    }
+    entity.Events.Raise(mediator.Default()) // Dispatch domain events AFTER persistence
     return nil
 }
 ```
 
 ### Query Handler (Read Path)
 
-Bypasses domain layer entirely. Maps DB rows directly to DTOs.
+Bypasses domain layer. Uses QueryRepository that returns DTOs directly.
 
 ```go
-// application/query/get_user.go
-type GetUserQuery struct {
-    UserID string
+// internal/business/<module>/application/query.go
+type QueryRepository interface {
+    FindUserList(ctx context.Context, name string, limit, offset int) ([]*User, error)
+    CountUserNumber(context.Context, string) (int, error)
 }
 
-type UserDTO struct {
+type FindUserListHandler struct {
+    readModel QueryRepository
+}
+
+func (h *FindUserListHandler) Handle(ctx context.Context, logger *slog.Logger, req *QueryFindUserListRequest) (*QueryFindUserListResponse, error) {
+    total, _ := h.readModel.CountUserNumber(ctx, req.Name)
+    users, _ := h.readModel.FindUserList(ctx, req.Name, req.PageSize, offset)
+    return &QueryFindUserListResponse{Total: total, Users: users}, nil
+}
+```
+
+### DTOs & Assemblers
+
+```go
+// application/dto.go — flat data carriers
+type User struct {
     ID    string `json:"id"`
+    Name  string `json:"name"`
     Email string `json:"email"`
 }
 
-type GetUserHandler struct {
-    db *sqlx.DB
+type CommandChangePassword struct {
+    ID          string `json:"_"`
+    OldPassword string `json:"old_password"`
+    NewPassword string `json:"new_password"`
 }
 
-func (h *GetUserHandler) Handle(ctx context.Context, q GetUserQuery) (*UserDTO, error) {
-    var dto UserDTO
-    err := h.db.GetContext(ctx, &dto, "SELECT id, email FROM users WHERE id = ?", q.UserID)
-    if err != nil {
-        return nil, oops.With("user_id", q.UserID).Wrap(err)
+// application/assembler.go — domain -> proto
+func assembleDomainUser(entity *domain.User) *userv1.GetResponse {
+    return &userv1.GetResponse{Id: entity.ID, Name: entity.Name, Email: entity.Email}
+}
+```
+
+### Event Handler
+
+```go
+// internal/business/<module>/application/handler.go
+type UserCreatedHandler struct{}
+
+func (s UserCreatedHandler) Listening() []mediator.EventKind {
+    return []mediator.EventKind{domain.EKUserCreated}
+}
+
+func (s UserCreatedHandler) Handle(ctx context.Context, ev mediator.Event) {
+    // Side effects: send email, update cache, audit log, etc.
+}
+```
+
+## Infrastructure Layer — Persistence
+
+### Data Object (DO)
+
+Separate struct mapped to DB table. Uses `xorm` tags and `copier` tags for field mapping.
+
+```go
+// internal/business/<module>/infrastructure/do.go
+type UserDO struct {
+    ID        string             `xorm:"id pk"`
+    Name      string             `xorm:"name"`
+    Password  []byte             `xorm:"password" copier:"HashedPassword"`
+    Email     string             `xorm:"email"`
+    Version   int                `xorm:"version"`
+    CreatedAt database.Timestamp `xorm:"created_at"`
+    UpdatedAt database.Timestamp `xorm:"updated_at"`
+    DeletedAt database.Timestamp `xorm:"deleted_at"`
+}
+
+func (u UserDO) TableName() string { return "user" }
+```
+
+### Converters
+
+Three conversion directions: Entity->DO, DO->Entity, DO->DTO. Use `jinzhu/copier`.
+
+```go
+// infrastructure/converter.go
+func convertUserToDO(entity *domain.User) (*UserDO, error) {
+    do := new(UserDO)
+    if err := copier.Copy(do, entity); err != nil {
+        return nil, oops.Wrap(err)
     }
-    return &dto, nil
+    // Handle timestamps and soft delete
+    return do, nil
+}
+
+func convertUserDO(do *UserDO) (*domain.User, error) {
+    entity := new(domain.User)
+    if err := copier.Copy(entity, do); err != nil {
+        return nil, oops.Wrap(err)
+    }
+    entity.Events = mediator.NewEventCollection() // Always init EventCollection
+    return entity, nil
+}
+
+func convertUserDOToDTO(do *UserDO) (*application.User, error) {
+    dto := new(application.User)
+    return dto, copier.Copy(dto, do)
 }
 ```
 
-### Event Handler (Async Path)
+### Repository Implementation
 
-`Mediator -> application/handler -> side effects (email, audit, projection...)`
-
-```go
-// application/handler/user_events.go
-type UserEventHandler struct {
-    mailer EmailService
-}
-
-func (h *UserEventHandler) OnUserRegistered(ctx context.Context, evt *domain.UserRegistered) error {
-    return h.mailer.SendWelcome(ctx, evt.Email)
-}
-```
-
-## Unit of Work — Transaction Boundary
-
-Transactions belong in `application/command/`, not domain or infrastructure.
+Write repo: `domain.Repository`. Read repo: `application.QueryRepository`.
 
 ```go
-// internal/pkg/db/uow.go
-type UnitOfWork interface {
-    Do(ctx context.Context, fn func(ctx context.Context) error) error
+// infrastructure/<entity>.go
+type userRepository struct {
+    engine   *xorm.Engine
+    mediator mediator.Mediator
 }
 
-// application/command/transfer_funds.go
-type TransferFundsHandler struct {
-    uow     db.UnitOfWork
-    service *domain.TransferService
+var _ domain.Repository = (*userRepository)(nil) // Interface compliance check
+
+func NewRepository(engine *xorm.Engine, mediator mediator.Mediator) domain.Repository {
+    return &userRepository{engine: engine, mediator: mediator}
 }
 
-func (h *TransferFundsHandler) Handle(ctx context.Context, cmd TransferFundsCommand) error {
-    amount, err := domain.NewMoney(cmd.AmountCents, cmd.Currency)
-    if err != nil {
+func (ur *userRepository) Save(ctx context.Context, user *domain.User) error {
+    data, _ := convertUserToDO(user)
+    if user.Version == 0 { // New entity — INSERT
+        _, err := ur.engine.Context(ctx).Insert(data)
         return err
     }
-    return h.uow.Do(ctx, func(ctx context.Context) error {
-        return h.service.Transfer(ctx, domain.AccountID(cmd.FromID), domain.AccountID(cmd.ToID), amount)
-    })
+    // Existing entity — UPDATE with soft delete guard
+    _, err := ur.engine.Context(ctx).
+        Cols("name", "password", "email", "updated_at", "deleted_at").
+        Where("id = ? AND deleted_at = 0", user.ID).
+        Update(data)
+    return err
 }
 ```
 
-## Error & Logging Lifecycle
+## fx Wiring
 
-| Layer | Action |
-|---|---|
-| Domain / Application | `return oops.With("key", val).Wrap(err)` — wrap with context, **never log** |
-| Infrastructure | `return oops.With("query", sql).Wrap(err)` — wrap with context, **never log** |
-| Edge (Interceptor/Controller) | Map to API error code, log **once** with `slog.Any("error", err)` |
+### Module-level (`internal/business/<module>/<module>.go`)
 
 ```go
-// internal/pkg/connectrpc/interceptor.go  (edge layer)
-func (i *ErrorInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
-    return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
-        resp, err := next(ctx, req)
-        if err != nil {
-            slog.ErrorContext(ctx, "request failed", slog.Any("error", err))
-            return nil, toConnectError(err)
-        }
-        return resp, nil
-    }
-}
-```
-
-## Wiring (uber-go/fx)
-
-### Module-level wiring (`module.go`)
-
-```go
-var Module = fx.Module("user",
-    fx.Provide(infrastructure.NewUserRepository),
-    fx.Provide(command.NewRegisterUserHandler),
-    fx.Provide(query.NewGetUserHandler),
-    fx.Provide(handler.NewUserEventHandler),
-    fx.Invoke(func(
-        srv v1connect.UserServiceHandler,
-        c connectrpc.Server,
-        m mediator.Mediator,
-        h *handler.UserEventHandler,
-    ) {
-        c.Register(v1connect.NewUserServiceHandler(srv))
-        m.Subscribe(h.OnUserRegistered)
+var Module = fx.Module(
+    "domain.<module>",
+    fx.Provide(infrastructure.NewQueryRepository),
+    fx.Provide(application.NewApplication),
+    fx.Provide(infrastructure.NewRepository),
+    fx.Invoke(func(srv userv1connect.UserAPIHandler, c connectrpc.ConnectServer) {
+        c.Register(userv1connect.NewUserAPIHandler(
+            srv, connect.WithInterceptors(c.GetGlobalInterceptors()...)))
     }),
 )
 ```
 
-### App-level composition (`cmd/main.go`)
+### App-level (`cmd/main.go`)
 
 ```go
-func main() {
-    fx.New(
-        pkg.Module,          // DB, HTTP server, Mediator, Logger
-        user.Module,
-        order.Module,
-        payment.Module,
-    ).Run()
+app := fx.New(
+    fx.Provide(parseOption),
+    fx.Provide(sloghelper.NewLog),
+    fx.Provide(eventbus.NewMediator),
+    pkg.Module,        // Infrastructure: DB, HTTP, gRPC, ConnectRPC
+    user.Module,       // Business modules
+    // order.Module,
+    fx.NopLogger,
+)
+```
+
+## Proto & API Layer
+
+```protobuf
+// proto/<module>/v1/<module>_api.proto
+syntax = "proto3";
+package <module>.v1;
+option go_package = "github.com/go-jimu/template/pkg/gen/<module>/v1;<module>pb";
+
+service <Module>Service {
+  rpc Get(GetRequest) returns (GetResponse) {}
 }
 ```
 
-## Testing Strategy
+Generate with `buf generate`. Code lands in `pkg/gen/<module>/v1/`.
 
-| Layer | Approach | Use mocks? |
-|---|---|---|
-| Domain | Pure unit tests, no external deps | No |
-| Application (Command/Query) | Unit tests, mock repositories & services | Yes |
-| Infrastructure | Integration tests against real DB (testcontainers) | No |
-| E2E | HTTP-level tests against running server | No |
+## Error & Logging
 
-```go
-// Domain layer — pure, no mocks
-func TestUser_ChangeEmail_InactiveUser(t *testing.T) {
-    u, _ := domain.NewUser("u1", mustEmail("a@example.com"))
-    u.Deactivate()
-    err := u.ChangeEmail(mustEmail("b@example.com"))
-    assert.ErrorContains(t, err, "inactive")
-}
+| Layer | Pattern |
+|---|---|
+| Domain / Infrastructure | `return oops.With("key", val).Wrap(err)` — context only, **no logging** |
+| Application | `logger.ErrorContext(ctx, "msg", sloghelper.Error(err)); return err` |
+| API edge | `return nil, connect.NewError(connect.CodeNotFound, err)` |
 
-// Application layer — mock the repository
-func TestRegisterUserHandler(t *testing.T) {
-    repo := &mockUserRepo{}
-    med := &mockMediator{}
-    h := command.NewRegisterUserHandler(repo, med)
+Get logger from context: `sloghelper.FromContext(ctx)`.
 
-    err := h.Handle(ctx, command.RegisterUserCommand{UserID: "u1", Email: "a@b.com"})
-    assert.NoError(t, err)
-    assert.Len(t, repo.saved, 1)
-    assert.Len(t, med.published, 1)
-}
+## Configuration
+
+`configs/default.yml` with environment variable override: `${ENV_VAR:default_value}`
+
+```yaml
+mysql:
+  host: ${MYSQL_HOST:localhost}
+  port: ${MYSQL_PORT:3306}
+  user: ${MYSQL_USER:root}
+  password: ${MYSQL_PASSWORD:jimu}
+  database: ${MYSQL_DATABASE:jimu}
+eventbus:
+  concurrent: 10
+  timeout: 10s
+connect:
+  addr: ":8080"
 ```
+
+## Adding a New Domain Module
+
+See `references/new-domain-guide.md` for a complete step-by-step walkthrough with file templates.
+
+**Summary of steps:**
+
+1. Define proto in `proto/<module>/v1/<module>_api.proto` -> `buf generate`
+2. Create `internal/business/<module>/domain/` — entity, events, repository interface
+3. Create `internal/business/<module>/application/` — application service, commands, queries, DTOs, assemblers, event handlers
+4. Create `internal/business/<module>/infrastructure/` — DO, converters, repository impl
+5. Create `internal/business/<module>/<module>.go` — fx.Module wiring
+6. Add SQL table to `scripts/sql/init.sql`
+7. Register module in `cmd/main.go`
 
 ## Architectural Red Lines
 
-### No persistence in Domain
-
-```go
-// WRONG — DB tag in domain entity
-type User struct {
-    ID    string `db:"id"`   // ❌
-    Email string `db:"email"` // ❌
-}
-
-// CORRECT — pure domain entity; DB mapping is in infrastructure DO
-type User struct {
-    id    UserID
-    email Email
-}
-```
-
-### No leaky infrastructure objects from Repository
-
-```go
-// WRONG — returns infrastructure DO
-func (r *Repo) FindByID(id string) (*UserDO, error) { ... } // ❌
-
-// CORRECT — returns domain entity
-func (r *Repo) FindByID(ctx context.Context, id domain.UserID) (*domain.User, error) { ... } // ✅
-```
-
-### No business logic in Application layer
-
-```go
-// WRONG — validation/logic in command handler
-func (h *Handler) Handle(ctx context.Context, cmd RegisterCmd) error {
-    if !strings.Contains(cmd.Email, "@") { ... } // ❌ belongs in domain VO
-}
-
-// CORRECT — delegate to domain
-func (h *Handler) Handle(ctx context.Context, cmd RegisterCmd) error {
-    email, err := domain.NewEmail(cmd.Email) // ✅ VO validates itself
-    ...
-}
-```
-
-### No cross-module synchronous calls
-
-```go
-// WRONG — order module directly calls user module
-func (h *OrderHandler) Handle(ctx context.Context, cmd PlaceOrderCmd) error {
-    user, _ := h.userService.FindUser(cmd.UserID) // ❌ synchronous coupling
-}
-
-// CORRECT — react to domain events asynchronously
-func (h *OrderEventHandler) OnUserDeactivated(ctx context.Context, evt *userdomain.UserDeactivated) error {
-    return h.orders.CancelAllForUser(ctx, evt.UserID) // ✅ event-driven
-}
-```
+- Domain layer has **ZERO** imports from infrastructure or DB libraries
+- Repositories operate on **Aggregate Roots only**, never sub-entities
+- All state changes via **methods on the aggregate** (no direct field mutation from outside)
+- Business logic lives in **domain**, not application layer
+- Command handlers are **orchestration only**
+- Query handlers **bypass domain**, map DB rows to DTOs directly
+- Domain Events dispatched **after successful persistence**: `entity.Events.Raise(mediator.Default())`
+- Cross-module communication via **domain events**, not direct service calls
+- Interface compliance: `var _ domain.Repository = (*repoImpl)(nil)`
+- Constructors return **interfaces**: `func NewRepository(...) domain.Repository`
 
 ## Quality Checklist
 
-- [ ] Directory structure matches the canonical layout
-- [ ] Repositories handle Aggregate Roots only, never sub-entities
-- [ ] All domain state changes happen via methods (no direct field assignment from outside)
-- [ ] Value Objects validate themselves in their constructors
-- [ ] Domain layer has zero imports from `infrastructure/` or external DB libraries
-- [ ] Command handlers contain zero business logic — only orchestration
-- [ ] Queries bypass domain layer and map directly to DTOs
-- [ ] Transactions (Unit of Work) are managed in `application/command/`, not domain
-- [ ] Domain Events are published via Mediator after successful persistence
-- [ ] Errors are wrapped with `oops` at each layer; logged only once at the edge
-- [ ] Cross-module side effects use Domain Events, not direct service calls
-- [ ] fx Modules register all providers and invoke wiring in `module.go`
+- [ ] Directory structure follows canonical layout
+- [ ] Domain entity uses `validate` tags + `Validate()` in factory method
+- [ ] `mediator.NewEventCollection()` initialized in factory AND converter
+- [ ] Repository returns domain entities (not DOs)
+- [ ] Write repo and read repo are separate (CQRS)
+- [ ] DO struct has `TableName()` method
+- [ ] Converters handle timestamps and soft delete correctly
+- [ ] fx.Module in `<module>.go` provides all constructors and invokes registration
+- [ ] `cmd/main.go` includes the new module
+- [ ] Proto generated code is not manually edited
+- [ ] Errors wrapped with `oops.With()` at each layer
