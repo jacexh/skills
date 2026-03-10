@@ -1,8 +1,6 @@
 ---
-name: tdd
+name: test-driven-development
 description: Use when implementing any feature or bugfix, before writing implementation code
-metadata:
-  source: https://github.com/obra/superpowers
 ---
 
 # Test-Driven Development (TDD)
@@ -72,33 +70,7 @@ digraph tdd_cycle {
 
 ### RED - Write Failing Test
 
-Write one minimal test showing what should happen. Design the interface from the caller's perspective.
-
-```python
-# Python
-def test_cart_total_with_single_item():
-    cart = Cart()
-    cart.add(Item("apple", price=1.50), quantity=2)
-    assert cart.total() == 3.00
-```
-
-```go
-// Go
-func TestCartTotalWithSingleItem(t *testing.T) {
-    cart := NewCart()
-    cart.Add(Item{Name: "apple", Price: 1.50}, 2)
-    assert.Equal(t, 3.00, cart.Total())
-}
-```
-
-```typescript
-// TypeScript
-test("cart total with single item", () => {
-  const cart = new Cart();
-  cart.add(new Item("apple", 1.50), 2);
-  expect(cart.total()).toBe(3.00);
-});
-```
+Write one minimal test showing what should happen.
 
 <Good>
 ```typescript
@@ -142,7 +114,11 @@ Vague name, tests mock not code
 
 **MANDATORY. Never skip.**
 
-Run the test. Confirm:
+```bash
+npm test path/to/test.test.ts
+```
+
+Confirm:
 - Test fails (not errors)
 - Failure message is expected
 - Fails because feature missing (not typos)
@@ -193,6 +169,10 @@ Don't add features, refactor other code, or "improve" beyond the test.
 
 **MANDATORY.**
 
+```bash
+npm test path/to/test.test.ts
+```
+
 Confirm:
 - Test passes
 - Other tests still pass
@@ -215,45 +195,6 @@ Keep tests green. Don't add behavior.
 
 Next failing test for next feature.
 
-## Bug Fixing with TDD
-
-Always reproduce a bug with a failing test *before* fixing it.
-
-```
-1. Write a test that exposes the bug → RED
-2. Fix the bug → GREEN
-3. Refactor if needed → GREEN
-4. Commit
-```
-
-This guarantees the bug is fixed and won't regress.
-
-**Example:**
-
-**RED**
-```typescript
-test('rejects empty email', async () => {
-  const result = await submitForm({ email: '' });
-  expect(result.error).toBe('Email required');
-});
-```
-
-**Verify RED** — `FAIL: expected 'Email required', got undefined`
-
-**GREEN**
-```typescript
-function submitForm(data: FormData) {
-  if (!data.email?.trim()) {
-    return { error: 'Email required' };
-  }
-  // ...
-}
-```
-
-**Verify GREEN** — `PASS`
-
-**REFACTOR** — Extract validation for multiple fields if needed.
-
 ## Good Tests
 
 | Quality | Good | Bad |
@@ -261,90 +202,6 @@ function submitForm(data: FormData) {
 | **Minimal** | One thing. "and" in name? Split it. | `test('validates email and domain and whitespace')` |
 | **Clear** | Name describes behavior | `test('test1')` |
 | **Shows intent** | Demonstrates desired API | Obscures what code should do |
-
-## Outside-In vs Inside-Out
-
-**Inside-Out (Chicago/Classic TDD)**
-- Start with the smallest unit (pure functions, data structures)
-- Build up toward higher-level components
-- Good for: well-understood domains, algorithmic code
-- Risk: design misfit between layers discovered late
-
-**Outside-In (London/Mockist TDD)**
-- Start with an acceptance/integration test (fails)
-- Implement layer by layer; mock collaborators not yet built
-- Drive inner layers' interfaces from how outer layers need to use them
-- Good for: web APIs, event-driven systems, unknown domains
-- Risk: over-mocking; tests don't catch integration issues
-
-Both are valid. Choose based on context. Many teams use outside-in at the feature level and inside-out at the unit level.
-
-## Test Doubles
-
-Use the simplest double that works. Don't mock what you own.
-
-| Double | When to use |
-|--------|------------|
-| **Fake** | Real working implementation, simplified (in-memory DB, fake clock) |
-| **Stub** | Provide canned responses for queries; don't verify calls |
-| **Mock** | Verify that specific interactions occurred; use sparingly |
-| **Spy** | Record calls on a real object; assert after the fact |
-
-```python
-# Prefer fakes over mocks for infrastructure
-class FakeUserRepository:
-    def __init__(self):
-        self._users: dict[str, User] = {}
-
-    def save(self, user: User) -> None:
-        self._users[user.id] = user
-
-    def find_by_id(self, user_id: str) -> User | None:
-        return self._users.get(user_id)
-
-def test_register_user_saves_to_repository():
-    repo = FakeUserRepository()
-    service = UserService(repo)
-    service.register(name="Alice", email="alice@example.com")
-    assert repo.find_by_id("alice@example.com") is not None
-```
-
-## Triangulation
-
-When the simplest implementation would just be `return 42`, write a second test that forces generalization.
-
-```python
-def test_add_returns_sum():
-    assert add(2, 3) == 5   # Could fake with: return 5
-
-def test_add_with_different_values():
-    assert add(10, 1) == 11  # Forces real implementation
-```
-
-## When Tests Are Hard to Write
-
-If writing the test is painful, the design is telling you something:
-
-| Symptom | Signal | Fix |
-|---------|--------|-----|
-| Needs many objects to set up | Too much coupling | Break dependencies |
-| Can only test through side effects | Logic buried in I/O | Separate pure logic |
-| Must mock many things | Too many collaborators | Reduce responsibilities |
-| Test mirrors implementation exactly | Testing internals | Test behavior, not structure |
-| Tests break on every refactor | Wrong abstraction level | Test the public contract |
-| Don't know how to test | Design unclear | Write wished-for API. Simplify interface. |
-| Test setup huge | Excess complexity | Extract helpers. Still complex? Simplify design. |
-
-## TDD Rhythms
-
-**Micro-cycle (seconds to minutes)**
-Write test → run → implement → run → refactor → run → commit
-
-**Feature cycle (minutes to hours)**
-Write acceptance test → drive out units via TDD → acceptance test goes green → commit
-
-**Refactoring cycle (any time on green)**
-Rename → extract → inline → move → simplify → verify green → commit
 
 ## Why Order Matters
 
@@ -430,15 +287,42 @@ Tests-first force edge case discovery before implementing. Tests-after verify yo
 
 **All of these mean: Delete code. Start over with TDD.**
 
-## Anti-Patterns to Avoid
+## Example: Bug Fix
 
-- **Test-last**: Writing tests after implementation means tests confirm code, not drive design
-- **God test**: One test that covers everything — split into focused tests
-- **Fragile test**: Breaks when unrelated code changes — test behavior, not structure
-- **Slow test**: Tests that hit the network/disk/sleep — use fakes and in-memory stores
-- **Commented-out tests**: Just delete them; if the behavior matters, write a real test
-- **Mocking internals**: If you mock private methods you're testing implementation, not behavior
-- **Skipping RED**: Writing code then writing a test that passes is not TDD
+**Bug:** Empty email accepted
+
+**RED**
+```typescript
+test('rejects empty email', async () => {
+  const result = await submitForm({ email: '' });
+  expect(result.error).toBe('Email required');
+});
+```
+
+**Verify RED**
+```bash
+$ npm test
+FAIL: expected 'Email required', got undefined
+```
+
+**GREEN**
+```typescript
+function submitForm(data: FormData) {
+  if (!data.email?.trim()) {
+    return { error: 'Email required' };
+  }
+  // ...
+}
+```
+
+**Verify GREEN**
+```bash
+$ npm test
+PASS
+```
+
+**REFACTOR**
+Extract validation for multiple fields if needed.
 
 ## Verification Checklist
 
@@ -454,6 +338,28 @@ Before marking work complete:
 - [ ] Edge cases and errors covered
 
 Can't check all boxes? You skipped TDD. Start over.
+
+## When Stuck
+
+| Problem | Solution |
+|---------|----------|
+| Don't know how to test | Write wished-for API. Write assertion first. Ask your human partner. |
+| Test too complicated | Design too complicated. Simplify interface. |
+| Must mock everything | Code too coupled. Use dependency injection. |
+| Test setup huge | Extract helpers. Still complex? Simplify design. |
+
+## Debugging Integration
+
+Bug found? Write failing test reproducing it. Follow TDD cycle. Test proves fix and prevents regression.
+
+Never fix bugs without a test.
+
+## Testing Anti-Patterns
+
+When adding mocks or test utilities, read @testing-anti-patterns.md to avoid common pitfalls:
+- Testing mock behavior instead of real behavior
+- Adding test-only methods to production classes
+- Mocking without understanding dependencies
 
 ## Final Rule
 

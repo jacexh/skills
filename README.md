@@ -105,13 +105,15 @@ Paste the content of any `SKILL.md` into the tool's **system prompt**, **custom 
 - [designing-tests](skills/designing-tests/SKILL.md): Language-agnostic test design strategy — layered pyramid (unit/integration/E2E), segmentation for microservice chains, state machines, and message queues, test case design techniques (equivalence partitioning, boundary value, decision table, idempotency). Includes references for Python/pytest and Go.
 - [e2e-testing](skills/e2e-testing/SKILL.md): Playwright implementation reference for E2E tests — Page Object Model, auth state reuse, artifact management, CI/CD integration, and flaky test handling.
 - [tdd](skills/tdd/SKILL.md): Apply Test-Driven Development discipline — Red-Green-Refactor cycle, language-agnostic TDD methodology for any language.
+- [test-driven-development](skills/test-driven-development/SKILL.md): Full TDD skill with Iron Law, Red-Green-Refactor cycle, rationalization tables, and testing anti-patterns reference.
 
 ### General
-- [brainstorming](skills/brainstorming/SKILL.md): Explore user intent, requirements, and design before implementation.
+- [brainstorming](skills/brainstorming/SKILL.md): Explore user intent, requirements, and design before implementation. Includes visual companion support and spec review loop.
 - [skill-creator](skills/skill-creator/SKILL.md): Create, improve, and evaluate skills with full eval infrastructure — test cases, benchmarking, description optimization.
 - [system-design](skills/system-design/SKILL.md): Design systems from requirements using EventStorming, Mermaid diagrams, and progressive elaboration through 5 phases.
+- [using-superpowers](skills/using-superpowers/SKILL.md): Core guidelines for invoking skills — priority hierarchy, access method, and skill categories.
 - [video-merger](skills/video-merger/SKILL.md): Merge multiple video files into a single output file using ffmpeg.
-- [writing-plans](skills/writing-plans/SKILL.md): Create comprehensive, bite-sized implementation plans before touching code.
+- [writing-plans](skills/writing-plans/SKILL.md): Create comprehensive, bite-sized implementation plans with plan review loop and chunk-based quality gates.
 - [writing-skills](skills/writing-skills/SKILL.md): Create and test skills using TDD methodology — pressure scenarios, CSO, and rationalization resistance.
 
 ## Related Resources
