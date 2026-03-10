@@ -76,7 +76,6 @@ Paste the content of any `SKILL.md` into the tool's **system prompt**, **custom 
 - [python-project-structure](skills/python-project-structure/SKILL.md): Python project organization, module architecture, and public API design.
 - [python-resilience](skills/python-resilience/SKILL.md): Python resilience patterns including retries, backoff, and timeouts.
 - [python-resource-management](skills/python-resource-management/SKILL.md): Python resource management with context managers and cleanup patterns.
-- [python-testing-patterns](skills/python-testing-patterns/SKILL.md): Implement comprehensive testing strategies with pytest and fixtures.
 - [python-type-safety](skills/python-type-safety/SKILL.md): Python type safety with type hints, generics, protocols, and strict checking.
 - [uv-package-manager](skills/uv-package-manager/SKILL.md): Master the uv package manager for fast Python dependency management.
 
@@ -102,11 +101,15 @@ Paste the content of any `SKILL.md` into the tool's **system prompt**, **custom 
 - [using-git-worktrees](skills/using-git-worktrees/SKILL.md): Systematic git worktree creation with safety verification and clean test baseline.
 - [verification-before-completion](skills/verification-before-completion/SKILL.md): Evidence before claims — no completion without fresh verification.
 
+### Testing
+- [designing-tests](skills/designing-tests/SKILL.md): Language-agnostic test design strategy — layered pyramid (unit/integration/E2E), segmentation for microservice chains, state machines, and message queues, test case design techniques (equivalence partitioning, boundary value, decision table, idempotency). Includes references for Python/pytest and Go.
+- [e2e-testing](skills/e2e-testing/SKILL.md): Playwright implementation reference for E2E tests — Page Object Model, auth state reuse, artifact management, CI/CD integration, and flaky test handling.
+- [tdd](skills/tdd/SKILL.md): Apply Test-Driven Development discipline — Red-Green-Refactor cycle, language-agnostic TDD methodology for any language.
+
 ### General
 - [brainstorming](skills/brainstorming/SKILL.md): Explore user intent, requirements, and design before implementation.
-- [skill-creator](skills/skill-creator/SKILL.md): Create or update skills with proper structure, scripts, references, and assets.
+- [skill-creator](skills/skill-creator/SKILL.md): Create, improve, and evaluate skills with full eval infrastructure — test cases, benchmarking, description optimization.
 - [system-design](skills/system-design/SKILL.md): Design systems from requirements using EventStorming, Mermaid diagrams, and progressive elaboration through 5 phases.
-- [tdd](skills/tdd/SKILL.md): Apply Test-Driven Development discipline — Red-Green-Refactor cycle, language-agnostic TDD methodology for any language.
 - [video-merger](skills/video-merger/SKILL.md): Merge multiple video files into a single output file using ffmpeg.
 - [writing-plans](skills/writing-plans/SKILL.md): Create comprehensive, bite-sized implementation plans before touching code.
 - [writing-skills](skills/writing-skills/SKILL.md): Create and test skills using TDD methodology — pressure scenarios, CSO, and rationalization resistance.
