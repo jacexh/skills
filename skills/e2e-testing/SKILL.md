@@ -1,6 +1,6 @@
 ---
 name: e2e-testing
-description: Playwright E2E testing patterns with Python/pytest, Page Object Model, configuration, CI/CD integration, artifact management, and flaky test strategies.
+description: Playwright implementation reference for E2E tests: Page Object Model, auth state reuse, artifact management (screenshots/traces/video), CI/CD integration, and flaky test handling. Use when implementing Playwright tests in Python/pytest. For E2E test design strategy and scope decisions, see designing-tests skill.
 origin: ECC
 ---
 
