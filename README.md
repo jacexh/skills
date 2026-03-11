@@ -64,19 +64,15 @@ Paste the content of any `SKILL.md` into the tool's **system prompt**, **custom 
 
 ### Python
 - [async-python-patterns](skills/async-python-patterns/SKILL.md): Master Python asyncio, concurrent programming, and async/await patterns.
-- [python-anti-patterns](skills/python-anti-patterns/SKILL.md): Common Python anti-patterns to avoid.
+- [python-architecture](skills/python-architecture/SKILL.md): Python architecture patterns including KISS, SRP, separation of concerns, composition over inheritance, dependency injection, project structure, and module organization.
 - [python-background-jobs](skills/python-background-jobs/SKILL.md): Python background job patterns including task queues and workers.
-- [python-code-style](skills/python-code-style/SKILL.md): Python code style, linting, formatting, and documentation standards.
+- [python-code-quality](skills/python-code-quality/SKILL.md): Python code quality including style, formatting, naming, docstrings, type safety, generics, protocols, and anti-pattern avoidance checklist.
 - [python-configuration](skills/python-configuration/SKILL.md): Python configuration management via environment variables and typed settings.
-- [python-design-patterns](skills/python-design-patterns/SKILL.md): Python design patterns including KISS, SoC, and SRP.
-- [python-error-handling](skills/python-error-handling/SKILL.md): Python error handling patterns and exception hierarchies.
 - [python-observability](skills/python-observability/SKILL.md): Python observability patterns including logging, metrics, and tracing.
 - [python-packaging](skills/python-packaging/SKILL.md): Create distributable Python packages with proper project structure.
 - [python-performance-optimization](skills/python-performance-optimization/SKILL.md): Profile and optimize Python code using cProfile and performance best practices.
-- [python-project-structure](skills/python-project-structure/SKILL.md): Python project organization, module architecture, and public API design.
-- [python-resilience](skills/python-resilience/SKILL.md): Python resilience patterns including retries, backoff, and timeouts.
 - [python-resource-management](skills/python-resource-management/SKILL.md): Python resource management with context managers and cleanup patterns.
-- [python-type-safety](skills/python-type-safety/SKILL.md): Python type safety with type hints, generics, protocols, and strict checking.
+- [python-robustness](skills/python-robustness/SKILL.md): Python robustness patterns including input validation, exception hierarchies, retry logic, timeouts, and fault-tolerant decorators.
 - [uv-package-manager](skills/uv-package-manager/SKILL.md): Master the uv package manager for fast Python dependency management.
 
 ### Frontend
