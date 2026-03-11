@@ -99,30 +99,14 @@ Paste the content of any `SKILL.md` into the tool's **system prompt**, **custom 
 
 ### Workflow & Methodology
 - [code-reviewer](skills/code-reviewer/SKILL.md): Senior code reviewer subagent — plan alignment, code quality, architecture, issue categorization.
-- [dispatching-parallel-agents](skills/dispatching-parallel-agents/SKILL.md): Split independent problems across parallel subagents with focused prompts.
-- [executing-plans](skills/executing-plans/SKILL.md): Structured batch execution of plans with checkpoints, blocker handling, and review gates.
-- [finishing-a-development-branch](skills/finishing-a-development-branch/SKILL.md): Structured branch completion — verify tests, merge/PR/keep/discard, cleanup worktree.
-- [receiving-code-review](skills/receiving-code-review/SKILL.md): Critically evaluate review feedback — verify against codebase before acting, push back when wrong.
-- [requesting-code-review](skills/requesting-code-review/SKILL.md): Structured code review dispatch using subagents with mandatory review points.
-- [subagent-driven-development](skills/subagent-driven-development/SKILL.md): Dispatch fresh subagent per task with two-stage review (spec compliance + code quality).
-- [systematic-debugging](skills/systematic-debugging/SKILL.md): 4-phase root-cause debugging — investigate, pattern analysis, hypothesis, implement.
-- [using-git-worktrees](skills/using-git-worktrees/SKILL.md): Systematic git worktree creation with safety verification and clean test baseline.
-- [verification-before-completion](skills/verification-before-completion/SKILL.md): Evidence before claims — no completion without fresh verification.
 
 ### Testing
 - [designing-tests](skills/designing-tests/SKILL.md): Language-agnostic test design strategy — layered pyramid (unit/integration/E2E), segmentation for microservice chains, state machines, and message queues, test case design techniques (equivalence partitioning, boundary value, decision table, idempotency). Includes references for Python/pytest and Go.
 - [e2e-testing](skills/e2e-testing/SKILL.md): Playwright implementation reference for E2E tests — Page Object Model, auth state reuse, artifact management, CI/CD integration, and flaky test handling.
-- [tdd](skills/tdd/SKILL.md): Apply Test-Driven Development discipline — Red-Green-Refactor cycle, language-agnostic TDD methodology for any language.
-- [test-driven-development](skills/test-driven-development/SKILL.md): Full TDD skill with Iron Law, Red-Green-Refactor cycle, rationalization tables, and testing anti-patterns reference.
 
 ### General
-- [brainstorming](skills/brainstorming/SKILL.md): Explore user intent, requirements, and design before implementation. Includes visual companion support and spec review loop.
-- [skill-creator](skills/skill-creator/SKILL.md): Create, improve, and evaluate skills with full eval infrastructure — test cases, benchmarking, description optimization.
 - [system-design](skills/system-design/SKILL.md): Design systems from requirements using EventStorming, Mermaid diagrams, and progressive elaboration through 5 phases.
-- [using-superpowers](skills/using-superpowers/SKILL.md): Core guidelines for invoking skills — priority hierarchy, access method, and skill categories.
 - [video-merger](skills/video-merger/SKILL.md): Merge multiple video files into a single output file using ffmpeg.
-- [writing-plans](skills/writing-plans/SKILL.md): Create comprehensive, bite-sized implementation plans with plan review loop and chunk-based quality gates.
-- [writing-skills](skills/writing-skills/SKILL.md): Create and test skills using TDD methodology — pressure scenarios, CSO, and rationalization resistance.
 
 ## Related Resources
 
