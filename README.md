@@ -44,6 +44,18 @@ ln -s "$(pwd)/skills/<skill-name>" ~/.claude/skills/<skill-name>
 
 After installation, invoke any skill with `/<skill-name>` in Claude Code.
 
+#### Claude Code Plugins
+
+The following plugins from the Claude Code plugin marketplace should also be installed. They provide workflow skills (TDD, debugging, code review, etc.) that complement the domain skills in this repo.
+
+| Plugin | Skills provided |
+|---|---|
+| `superpowers` | brainstorming, writing-plans, executing-plans, systematic-debugging, test-driven-development, verification-before-completion, requesting-code-review, receiving-code-review, finishing-a-development-branch, subagent-driven-development, dispatching-parallel-agents, using-git-worktrees, writing-skills, using-superpowers |
+| `skill-creator` | skill-creator |
+| `frontend-design` | frontend-design |
+
+> These plugins overlap with skills in this repo. Install plugins first, then sync this repo — the install script will not overwrite plugin-provided skills.
+
 ### OpenAI Codex / Cursor / Windsurf
 
 Paste the content of any `SKILL.md` into the tool's **system prompt**, **custom instructions**, or **rules** configuration. The YAML frontmatter block at the top (`---`) can be omitted if the tool doesn't support it.
