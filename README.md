@@ -114,6 +114,7 @@ Paste the content of any `SKILL.md` into the tool's **system prompt**, **custom 
 - [Agent Skill](https://agentskills.io/)
 - [Awesome Agent Skills](https://github.com/heilcheng/awesome-agent-skills)
 - [superpowers](https://github.com/obra/superpowers)
+- [agents](https://github.com/wshobson/agents)
 
 ## License
 
